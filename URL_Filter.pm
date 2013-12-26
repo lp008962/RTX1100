@@ -6,8 +6,8 @@ use Class::Accessor 'antlers';
 use List::MoreUtils 'apply';
 
 # Accessor
-has 'file'   => (isa => 'Str', is => 'rw');
-#has 'model'  => (isa => 'Str', is => 'rw'); # 他モデルのログ形式しらない
+has 'file' => (isa => 'Str', is => 'rw');
+#has 'model' => (isa => 'Str', is => 'rw'); # 他モデルのログ形式しらない
 #has 'ipaddr' => (isa => 'Str', is => 'rw'); # サーチ対象を絞るなら。
 
 
@@ -16,10 +16,10 @@ sub new {
     my $proto = shift;
     my $class = ref $proto || $proto;
     my %args = @_;
-    my $self  = { 
-        file   => $args{file}   || '/var/log/yamaha/rtlog',
-#        ipaddr => $args{ipaddr} || '192.168.1.',
-#        model  => $args{model}  || 'rtx1100',
+    my $self = {
+        file => $args{file} || '/var/log/yamaha/rtlog',
+# ipaddr => $args{ipaddr} || '192.168.1.',
+# model => $args{model} || 'rtx1100',
         result => '',
     };
     return bless($self, $class);
@@ -38,7 +38,7 @@ sub searched {
         next if $_ eq $prev;
         $prev = $_;
         next unless $_ =~ /\[URL_FILTER\]/;
-#        next unless $_ =~ /$self->{ipaddr}/;
+# next unless $_ =~ /$self->{ipaddr}/;
 
         $self->analyze($_);
     }
@@ -52,16 +52,16 @@ sub analyze {
     my ($self, $line) = @_;
 
     # 完全にログ形式に依存
-    my @facts = split(' ', $line);
-    my $m     = $facts[0];
-    my $d     = $facts[1];
-    my $time  = $facts[2];
-    my $ip    = $facts[10];
-    my $url   = $facts[12]; # is query_strings.
+    my @cols = split(' ', $line);
+    my $m = $cols[0];
+    my $d = $cols[1];
+    my $time = $cols[2];
+    my $ip = $cols[10];
+    my $url = $cols[12]; # is query_strings.
     my $query;
 
-    # Let's REGEXP!!!!!!!11
-    # Memo: Probably using HASH makes it smart.
+    # Let's REGEXP!!!!!!!1111
+    # もっとマシな書き方ェ・・・・
     if ( $url =~ q|google.co.jp/search\?|) {
         $query = apply { s/^.+search.+?q\=(.+?)(&.+|)$/$1/g } $url;
         $self->decode($m, $d, $time, $ip, $query, "Google");
@@ -90,7 +90,7 @@ sub decode {
     return if $query =~ /^http/;
     return if $query eq "";
 
-    my $msg  = "";
+    my $msg = "";
 
     if ($query =~ /%[0-9A-Fa-f]{2}/) {
         $query =~ tr/+/ /;
@@ -108,4 +108,3 @@ sub decode {
 }
 
 1;
-
