@@ -8,7 +8,7 @@ use List::MoreUtils 'apply';
 my %engines = (
     "Google"    => { 
         pattern => 'google.co.jp/search\?',
-        regexp  => '^.+search.+?\&q\=(.+?)(&.+|)$',
+        regexp  => '^.+search(\?q|.+?\&q)\=(.+?)(&.+|)$',
     },
     "Yahoo"     => { 
         pattern => 'http://search.yahoo.co.jp/',
@@ -117,7 +117,7 @@ sub parse_url {
     my $query;
 
     foreach my $key ( keys %engines ) {
-            if ($key eq 'Yahoo') {
+            if ($key eq 'Google' or $key eq 'Yahoo') {
                 $query = apply { s/$engines{$key}{regexp}/$2/g } $url;
             } else {
                 $query = apply { s/$engines{$key}{regexp}/$1/g } $url;
