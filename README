@@ -1,13 +1,9 @@
-YAMAHA RTX1100のログから
-検索されたワードを調べます。
-URL Filterに引っかかった検索エンジンのクエリを
+YAMAHA RTX1100のログから検索されたワードを調べます。
+URL Filterに引っかかった検索エンジンごとのクエリを
 デコードしているだけです。
 
-まずはログサーバを立てて、
-syslog hostを設定することが前提です。
-RTX1100のログ(URL部分)は255文字制限ようなので、
-長ーいクエリは（＆諸々パラメータのために）
-途切れてることも。
+まずはログサーバを立てて、syslog hostを設定してあることが前提です。
+RTX1100のログ(URLの部分)は255文字までのようなので、長いクエリは途切れてることも。
 
 
 ・使い方
@@ -15,7 +11,7 @@ RTX1100のログ(URL部分)は255文字制限ようなので、
     
     my $file = $ARGV[0];
     my $rtx  = YAMAHA::URL_Filter->new(file => $file);
-    my $msg  = $rtx->searched;
+    my $msg  = $rtx->get_searched_queries;
     
     print $msg;
 
