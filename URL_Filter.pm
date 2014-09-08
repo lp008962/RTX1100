@@ -3,7 +3,6 @@ use strict;
 use warnings;
 use Class::Accessor 'antlers';
 use List::MoreUtils 'apply';
-### use My::DNS;
 
 my %engines = (
     "Google"    => { 
@@ -11,11 +10,11 @@ my %engines = (
         regexp  => '^.+search(\?q|.+?\&q)\=(.+?)(&.+|)$',
     },
     "Yahoo"     => { 
-        pattern => 'http://search.yahoo.co.jp/',
-        regexp  => '^.+?search(\?p\=|.+?\&p\=|.+?\?p=)([^&].+?)(&search.+|&.+|)$',
+        pattern => 'search.yahoo.co.jp/',
+        regexp  => '^.+?search(\?p|.+?\&p|.+?\?p)\=(.+?)(\&.+|)$',
     },
     "Cybonet"   => { 
-        pattern => '^http://search.cybozu.net/\?keywords',
+        pattern => 'search.cybozu.net/\?keywords',
         regexp  => '^.+?\?keywords\=(.+?)(&.+|)$',
     },
     "Bing"      => { 
@@ -32,8 +31,6 @@ my %engines = (
 has 'file'   => (isa => 'Str', is => 'rw');
 has 'result' => (isa => 'Str', is => 'rw');
 has 'ip'     => (isa => 'Str', is => 'rw');
-
-### my $dns = My::DNS->new;
 
 # Constractor
 sub new {
@@ -54,7 +51,7 @@ sub get_searched_queries {
     my $self = shift;
     my $url  = shift;
 
-    # Parse  a single-URL-line. Not by file
+    # Enable parse a single-line-URL, not file but argv.
     if ($url) {
         return $self->parse_url($url);
     } else {
@@ -70,20 +67,31 @@ sub analyze {
     my $prev = "";
     open my $fh, '<', $file or die "File Not Found $file: $!";
 
-    # Make regexp  to match lines
-    my $str_matching = "";
-    foreach my $key ( keys %engines ) {
-        $str_matching = sprintf("%s|", $engines{$key}{pattern});
-    }
-    $str_matching = substr($str_matching, 0, -1); # Delete a last pipe.
+    # Make regexp strings.
+    my $str_matching = &gen_regexp_engines('pattern');
 
     while (<$fh>) {
-        next unless $_ =~ /$str_matching/oi;
+        next unless $_ =~ /$str_matching/o;
         next if $_ eq $prev;
         $prev = $_;
 
         $self->parse_log($_);
     }
+
+
+}
+
+sub gen_regexp_engines {
+    my $key2 = shift || 'pattern';
+
+    my $str_matching="";
+    foreach my $key ( keys %engines ) {
+        # Separate each engines by pipe, like 'google|yahoo|some_engine|'
+        $str_matching .= sprintf("%s|", $engines{$key}{$key2});
+    }
+    $str_matching = substr($str_matching, 0, -1); # Delete a last pipe.
+
+    return $str_matching;
 
 }
 
@@ -102,13 +110,12 @@ sub parse_log {
     $query = $self->parse_url( $url );
     return if !$query;
     
-    # 同じIPから二度DNSを引かないように
-    ### $self->{ip}{$ip} = $dns->ip2user($ip) if ( !$self->{ip}{$ip} );
+###    # Dont request same ip-address.
+###    my $mymod = Make::Your::Own->new;
+###    $self->{ip}{$ip} = $mymod->ip2user($ip) if ( !$self->{ip}{$ip} );
 
-   ###  $self->{result} .= sprintf("%2s %2s %5s : %-15s -> %s\n", 
-   ###                            $month, $day, $time, $self->{ip}{$ip}, $query );
     $self->{result} .= sprintf("%2s %2s %5s : %-15s -> %s\n", 
-                                                    $month, $day, $time, $ip, $query );
+                                $month, $day, $time, $ip, $query );  # $ip or $self->{ip}[$ip};
 
 }
 
@@ -117,14 +124,15 @@ sub parse_url {
     my $query;
 
     foreach my $key ( keys %engines ) {
-            if ($key eq 'Google' or $key eq 'Yahoo') {
-                $query = apply { s/$engines{$key}{regexp}/$2/g } $url;
-            } else {
-                $query = apply { s/$engines{$key}{regexp}/$1/g } $url;
-            }
+        next unless $url =~ /$engines{$key}{regexp}/;
+        if ($key eq 'Yahoo' or $key eq 'Google') {
+            $query = apply { s/$engines{$key}{regexp}/$2/g } $url;
+        } else {
+            $query = apply { s/$engines{$key}{regexp}/$1/g } $url;
+        }
 
-            $query = $self->decode($query);
-            $query = sprintf("%s(%s)", $query, $key);
+        $query = $self->decode($query);
+        $query = sprintf("%s(%s)", $query, $key);
 
     }
 
@@ -133,15 +141,14 @@ sub parse_url {
 
 sub decode { 
     my ($self, $query) = @_;
-
     return if $query eq "";
 
     if ($query =~ /%[0-9A-Fa-f]{2}/) {
+        #$query =~ tr/+/ /;
+        #$query =~ s/%([0-9A-Fa-f][0-9A-Fa-f])/pack('H2', $1)/eg;
         use URI::Escape;
         $query = uri_unescape( $query );
     }
 
     return $query;
 }
-
-1;
