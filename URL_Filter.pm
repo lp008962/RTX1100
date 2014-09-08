@@ -1,4 +1,4 @@
-package My::YAMAHA::URL_Filter;
+package YAMAHA::URL_Filter;
 use strict;
 use warnings;
 use Class::Accessor 'antlers';
